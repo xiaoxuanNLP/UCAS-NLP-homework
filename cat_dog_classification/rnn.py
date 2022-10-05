@@ -6,50 +6,26 @@ from utils import *
 import torch.nn.functional as F
 from eval import *
 from torch.utils.tensorboard import SummaryWriter
+import einops
+import torch
 
 
-class AlexNet(nn.Module):
+class LSTM(nn.Module):
     def __init__(self):
-        super(AlexNet, self).__init__()
-        self.features = nn.Sequential(
-            nn.Conv2d(3, 48, kernel_size=(11, 11)),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=3, stride=2),
-            nn.Conv2d(48, 128, kernel_size=(5, 5), padding=(2, 2)),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=3, stride=2),
-            nn.Conv2d(128, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(192, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(192, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=3, stride=2),
-        )
-        self.classifier = nn.Sequential(
-            nn.Linear(13 * 13 * 128, 2048),
-            nn.ReLU(inplace=True),
-            nn.Dropout(0.5),
-            nn.Linear(2048, 2048),
-            nn.ReLU(inplace=True),
-            nn.Dropout(),
-            nn.Linear(2048, 2)
-        )
+        super(LSTM, self).__init__()
+        self.lstm = nn.LSTM(input_size=128*3, hidden_size=128)
+        self.linear = nn.Linear(128, 2)
 
     def forward(self, x):
-        # print("input.shape = ",x.shape)
-        x = self.features(x)
-        # print("x.shape = ",x.shape)
-        x = torch.flatten(x, start_dim=1)
-        # print("x.flatten = ",x.shape)
-        x = self.classifier(x)
-        x = torch.sigmoid(x)
-
-        return x
-
+        x = einops.rearrange(x,'b c h w -> h b (c w)')
+        output, (h, c) = self.lstm(x)
+        out = self.linear(output[-1])
+        out = torch.sigmoid(out)
+        # print("out = ",out)
+        return out
 
 def train(save_path, epochs=3, print_step=50):
-    model = AlexNet()
+    model = LSTM()
     writer = SummaryWriter()
 
     train_set, test_set = load_data()
@@ -105,11 +81,11 @@ def train(save_path, epochs=3, print_step=50):
                     os.makedirs(save_path)
 
                 torch.save(model.state_dict(), save_path + '/e{}_s{}.pth'.format(epoch, step))
-                print("epoch: {} , step: {} ".format(epoch,step))
-                eval(AlexNet(), save_path + '/e{}_s{}.pth'.format(epoch, step), test_loader, writer, epoch,
+                print("epoch: {} , step: {} ".format(epoch, step))
+                eval(LSTM(), save_path + '/e{}_s{}.pth'.format(epoch, step), test_loader, writer, epoch,
                      one_epoch_size, step)
             # print("output = ",output)
 
 
 if __name__ == "__main__":
-    train("AlexNet",epochs=30, print_step=5)
+    train("LSTM", epochs=30, print_step=100)
