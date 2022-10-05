@@ -112,4 +112,4 @@ def train(save_path, epochs=3, print_step=50):
 
 
 if __name__ == "__main__":
-    train("AlexNet")
+    train("AlexNet",epochs=30, print_step=5)

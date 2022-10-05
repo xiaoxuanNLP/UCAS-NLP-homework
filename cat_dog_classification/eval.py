@@ -27,7 +27,7 @@ def eval(model,save_model,testing_loader,writer,epoch,one_epoch_size,step):
             one_hot_label = F.one_hot(label,num_classes=2).to(device,dtype=torch.float)
             loss = BCE(output,one_hot_label)
             output = torch.argmax(output,axis=1).cpu()
-            losses.append(loss)
+            # losses.append(loss.cpu())
             # print(output)
             label = label.cpu()
             the_label.append(label)
@@ -38,14 +38,14 @@ def eval(model,save_model,testing_loader,writer,epoch,one_epoch_size,step):
         assert len(the_label) == len(the_prediction)
         # if len(the_label) > 1:
         the_label,the_prediction = np.concatenate(the_label),np.concatenate(the_prediction)
-        if len(losses) > 1:
-            loss = np.concatenate(losses)
-        else:
-            loss = losses[0]
+        # if len(losses) > 1:
+        #     loss = np.concatenate(losses)
+        # else:
+        #     loss = losses[0]
         # print("eval/loss = ",loss)
 
         result = classification_report(the_label,the_prediction)
-        writer.add_scalar(tag="loss/eval",scalar_value=loss.item(),global_step=epoch*one_epoch_size+step)
+        # writer.add_scalar(tag="loss/eval",scalar_value=loss.item(),global_step=epoch*one_epoch_size+step)
         # print("result['accuracy'] = ",result[0])
         writer.add_scalar(tag="acc/eval",scalar_value=classification_report(the_label,the_prediction,output_dict=True)["accuracy"],global_step=epoch*one_epoch_size+step)
         print("result = ",result)
