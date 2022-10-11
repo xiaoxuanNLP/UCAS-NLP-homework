@@ -14,13 +14,13 @@ class DNN(nn.Module):
     def __init__(self):
         super(DNN, self).__init__()
         self.feature = nn.Sequential(
-            nn.Linear(3*128*128,2048),
-            nn.ReLU(inplace=True),
-            nn.Dropout(0.2),
-            nn.Linear(2048, 1024),
+            nn.Linear(3*128*128,1024),
             nn.ReLU(inplace=True),
             nn.Dropout(0.2),
             nn.Linear(1024, 512),
+            nn.ReLU(inplace=True),
+            nn.Dropout(0.2),
+            nn.Linear(512, 512),
             nn.ReLU(inplace=True),
             nn.Dropout(0.2),
             nn.Linear(512, 2),
@@ -86,7 +86,7 @@ def train(save_path, epochs=3, print_step=50):
             loss.backward()
 
             optimizer.step()
-            if step % print_step == 0:
+            if step % print_step == 0 and step != 0:
                 if not os.path.exists(save_path):
                     os.makedirs(save_path)
 

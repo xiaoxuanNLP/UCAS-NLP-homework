@@ -13,8 +13,8 @@ import torch
 class LSTM(nn.Module):
     def __init__(self):
         super(LSTM, self).__init__()
-        self.lstm = nn.LSTM(input_size=128*3, hidden_size=128)
-        self.linear = nn.Linear(128, 2)
+        self.lstm = nn.LSTM(input_size=128*3, hidden_size=1024)
+        self.linear = nn.Linear(1024, 2)
 
     def forward(self, x):
         x = einops.rearrange(x,'b c h w -> h b (c w)')

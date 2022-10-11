@@ -11,21 +11,16 @@ from torch.utils.tensorboard import SummaryWriter
 class AlexNet(nn.Module):
     def __init__(self):
         super(AlexNet, self).__init__()
-        self.features = nn.Sequential(
-            nn.Conv2d(3, 48, kernel_size=(11, 11)),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=3, stride=2),
-            nn.Conv2d(48, 128, kernel_size=(5, 5), padding=(2, 2)),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=3, stride=2),
-            nn.Conv2d(128, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(192, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(192, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=3, stride=2),
-        )
+        # self.features = nn.Sequential(
+        self.conv1 = nn.Conv2d(3, 48, kernel_size=(11, 11))
+        self.pool1 = nn.MaxPool2d(kernel_size=3, stride=2)
+        self.conv2 = nn.Conv2d(48, 128, kernel_size=(5, 5), padding=(2, 2))
+        self.pool2 = nn.MaxPool2d(kernel_size=3, stride=2)
+        self.conv3 = nn.Conv2d(128, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.conv4 = nn.Conv2d(192, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.conv5 = nn.Conv2d(192, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.pool3 = nn.MaxPool2d(kernel_size=3, stride=2)
+        # )
         self.classifier = nn.Sequential(
             nn.Linear(13 * 13 * 128, 2048),
             nn.ReLU(inplace=True),
@@ -37,8 +32,25 @@ class AlexNet(nn.Module):
         )
 
     def forward(self, x):
-        # print("input.shape = ",x.shape)
-        x = self.features(x)
+        print("input.shape = ",x.shape)
+        x = self.conv1(x)
+        print("conv1(x) = ",x.shape)
+        x = self.pool1(x)
+        print("pool1(x) = ",x.shape)
+        x = self.conv2(x)
+        print("conv2(x) = ",x.shape)
+        x = self.pool2(x)
+        print("pool2(x) = ",x.shape)
+        x = self.conv3(x)
+        print("conv3(x) = ",x.shape)
+        x = self.conv4(x)
+        print("conv4(x) = ",x.shape)
+        x = self.conv5(x)
+        print("conv5(x) = ",x.shape)
+        x = self.pool3(x)
+        print("pool3(x) = ",x.shape)
+
+        # x = self.features(x)
         # print("x.shape = ",x.shape)
         x = torch.flatten(x, start_dim=1)
         # print("x.flatten = ",x.shape)
@@ -112,4 +124,4 @@ def train(save_path, epochs=3, print_step=50):
 
 
 if __name__ == "__main__":
-    train("AlexNet",epochs=30, print_step=5)
+    train("AlexNet",epochs=60, print_step=1)

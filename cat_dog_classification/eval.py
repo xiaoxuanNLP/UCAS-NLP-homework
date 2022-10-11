@@ -4,6 +4,7 @@ from torch import cuda
 from sklearn.metrics import classification_report
 import torch.nn.functional as F
 import torch.nn as nn
+import os
 
 def eval(model,save_model,testing_loader,writer,epoch,one_epoch_size,step):
     device = 'cuda' if cuda.is_available() else 'cpu'
@@ -49,5 +50,6 @@ def eval(model,save_model,testing_loader,writer,epoch,one_epoch_size,step):
         # print("result['accuracy'] = ",result[0])
         writer.add_scalar(tag="acc/eval",scalar_value=classification_report(the_label,the_prediction,output_dict=True)["accuracy"],global_step=epoch*one_epoch_size+step)
         print("result = ",result)
+        os.remove(save_model)
 
 
