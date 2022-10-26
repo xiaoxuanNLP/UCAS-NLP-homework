@@ -1,10 +1,10 @@
-from data_loader import *
-from config import *
+from .data_loader import *
+from .config import *
 from torch import cuda
 import torch.nn as nn
-from utils import *
+from .utils import *
 import torch.nn.functional as F
-from eval import *
+from .eval import *
 from torch.utils.tensorboard import SummaryWriter
 import einops
 import torch
