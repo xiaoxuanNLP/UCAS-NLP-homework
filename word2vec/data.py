@@ -15,7 +15,7 @@ DATA_DIR = "./data"
 def load_data(file_name):
     file_path = join(DATA_DIR, file_name)
     doc = []
-    with open(file_path, "r") as f:
+    with open(file_path, "r",encoding='utf-8') as f:
         content = f.read()
         doc = content.split("\n")
     return doc
@@ -30,9 +30,9 @@ class MyDataset(Dataset):
         self.num_noise_words = num_noise_words
         self.vocabs = self.get_vocab()
         self.word2index, self.index2word = self.get_word2index()
-        self.get_noise_distribution = None
         self.data = []
         self.init_noise_distribution()
+        self.generate_data()
 
     def __len__(self):
         return self.length
@@ -41,13 +41,14 @@ class MyDataset(Dataset):
         # 这个的地方如何分batch是一个问题，需要截断或者追加
         # return None
         data = self.data[index]
+        # print("data = ",data)
 
         return {
-            "middle":torch.tensor(data[0],dtype=torch.long),
-            "preamble":torch.tensor(data[1],dtype=torch.long),
-            "epilogue":torch.tensor(data[2],dtype=torch.long),
-            "doc_index":torch.tensor(data[3],dtype=torch.long),
-            "noise":torch.tensor(data[4],dtype=torch.long)
+            "middle": torch.tensor(data[0], dtype=torch.long),
+            "preamble": torch.tensor(data[1], dtype=torch.long),
+            "epilogue": torch.tensor(data[2], dtype=torch.long),
+            "doc_index": torch.tensor(data[3], dtype=torch.long),
+            "noise": torch.tensor(data[4], dtype=torch.long)
 
         }
 
@@ -83,10 +84,14 @@ class MyDataset(Dataset):
 
         probs = np.power(probs, 0.75)
         probs /= np.sum(probs)
+        self.probs = probs
 
-        self.get_noise_distribution = lambda: choice(
-            probs.shape[0], self.num_noise_words, p=probs
-        ).tolist()
+    def get_noise_distribution(self):
+        noise = choice(
+            self.probs.shape[0], self.num_noise_words, p=self.probs
+        )
+        # print("noise = ",noise)
+        return noise.tolist()
 
     # 这里我令doc的id也是从1开始
     def generate_data(self):
@@ -95,23 +100,30 @@ class MyDataset(Dataset):
             doc_index += 1
             words = doc.split(" ")
             # 这个地方忘记算中间词了
-            for index in range(len(words) - self.context_size * 2 - 1):
-                preamble = []
-                epilogue = []
-                for i in range(self.context_size - 1):
-                    preamble.append(words[index + i])
-                    epilogue.append(words[index + self.context_size + 1 + i])
+            if len(words) - self.context_size * 2 > 0:
+                for index in range(len(words) - self.context_size * 2):
+                    preamble = []
+                    epilogue = []
+                    for i in range(self.context_size):
+                        preamble.append(self.word2index[words[index + i]])
+                        epilogue.append(self.word2index[words[index + self.context_size + 1 + i]])
 
-                middle = index + self.context_size
-                noise = self.get_noise_distribution()
+                    middle = index + self.context_size
+                    noise = self.get_noise_distribution()
+                    noise.insert(0,middle)
 
-                # 中间词,上文、下文、文档、噪音
-                self.data.append([middle, preamble, epilogue, doc_index, noise])
+                    # 中间词,上文、下文、文档、噪音
+                    self.data.append([middle, preamble, epilogue, doc_index, noise])
 
 
 if __name__ == "__main__":
-    a = {1:2,2:4}
-    print(len(a))
+    # a = {1:2,2:4}
+    # print(len(a))
+    a = torch.tensor([[1, 2, 3], [4, 5, 6]])
+    b = torch.tensor([[7, 8, 9], [1, 2, 3]])
+    c = torch.tensor([0,1])
+    print(torch.concat((a, b), dim=1))
+    print(a[c,:])
     # for word in a.keys():
     # print("word = ",word)
     # print("freq = ",freq)
