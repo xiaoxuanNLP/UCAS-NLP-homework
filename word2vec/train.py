@@ -68,7 +68,7 @@ def train(data_file_name,
             loss = loss_function(output)
             losses.append(loss.item())
 
-            # exit()
+
             model.zero_grad()
 
             if step % PRINT_STEP == 0:
