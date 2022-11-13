@@ -5,11 +5,13 @@
 import torch
 from torch.utils.data import DataLoader, Dataset
 from sklearn.metrics import precision_score, recall_score, f1_score, classification_report
-from utils import build_vocab, build_dict, cal_max_length, Config
-from model import NERLSTM
+from .utils import build_vocab, build_dict, cal_max_length, Config
+from .model import LSTM
 from torch.optim import Adam, SGD
 import os
+
 os.environ["CUDA_VISIBLE_DEVICES"] = '0'
+
 
 class NERdataset(Dataset):
 
@@ -17,11 +19,12 @@ class NERdataset(Dataset):
         file_dir = data_dir + split
         corpus_file = file_dir + '_corpus.txt'
         label_file = file_dir + '_label.txt'
-        corpus = open(corpus_file,encoding="utf-8").readlines()
-        label = open(label_file,encoding="utf-8").readlines()
+        corpus = open(corpus_file, encoding="utf-8").readlines()
+        label = open(label_file, encoding="utf-8").readlines()
         self.corpus = []
         self.label = []
         self.length = []
+        self.mask = []
         self.word2id = word2id
         self.tag2id = tag2id
         for corpus_, label_ in zip(corpus, label):
@@ -30,27 +33,31 @@ class NERdataset(Dataset):
                                 for temp_word in corpus_.split()])
             self.label.append([tag2id[temp_label] for temp_label in label_.split()])
             self.length.append(len(corpus_.split()))
-            if(len(self.corpus[-1]) > max_length):
+            if (len(self.corpus[-1]) > max_length):
                 self.corpus[-1] = self.corpus[-1][:max_length]
                 self.label[-1] = self.label[-1][:max_length]
                 self.length[-1] = max_length
+                self.mask.append([0 for _ in range(max_length)])
             else:
-                while(len(self.corpus[-1]) < max_length):
+                self.mask.append([0 for _ in range(len(self.corpus[-1]))])
+                while (len(self.corpus[-1]) < max_length):
+                    self.mask[-1].append(1)
                     self.corpus[-1].append(word2id['pad'])
                     self.label[-1].append(tag2id['PAD'])
 
         self.corpus = torch.Tensor(self.corpus).long()
         self.label = torch.Tensor(self.label).long()
         self.length = torch.Tensor(self.length).long()
+        self.mask = torch.Tensor(self.mask).long()
 
     def __getitem__(self, item):
-        return self.corpus[item], self.label[item], self.length[item]
+        return self.corpus[item], self.label[item], self.length[item], self.mask
 
     def __len__(self):
         return len(self.label)
 
-def val(config, model):
 
+def val(config, model):
     # ignore the pad label
     model.eval()
     loss_function = torch.nn.CrossEntropyLoss(ignore_index=7)
@@ -59,9 +66,9 @@ def val(config, model):
     preds, labels = [], []
     for index, data in enumerate(dataloader):
         optimizer.zero_grad()
-        corpus, label, length = data
-        corpus, label, length = corpus.cuda(), label.cuda(), length.cuda()
-        output = model(corpus)
+        corpus, label, length,mask = data
+        corpus, label, length,mask = corpus.cuda(), label.cuda(), length.cuda(),mask.cuda()
+        output = model(corpus,mask)
         predict = torch.argmax(output, dim=-1)
         loss = loss_function(output.view(-1, output.size(-1)), label.view(-1))
         leng = []
@@ -87,10 +94,7 @@ def val(config, model):
     return precision, recall, f1
 
 
-
-
 def train(config, model, dataloader, optimizer):
-
     # ignore the pad label
     loss_function = torch.nn.CrossEntropyLoss(ignore_index=7)
     best_f1 = 0.0
@@ -107,7 +111,7 @@ def train(config, model, dataloader, optimizer):
                 print('epoch: ', epoch, ' step:%04d,------------loss:%f' % (index, loss.item()))
 
         prec, rec, f1 = val(config, model)
-        if(f1 > best_f1):
+        if (f1 > best_f1):
             torch.save(model, config.save_model)
 
 
@@ -118,8 +122,12 @@ if __name__ == '__main__':
     max_length = cal_max_length(config.data_dir)
     trainset = NERdataset(config.data_dir, 'train', word2id, tag2id, max_length)
     dataloader = DataLoader(trainset, batch_size=config.batch_size)
-    nerlstm = NERLSTM(config.embedding_dim, config.hidden_dim, config.dropout, word2id, tag2id).cuda()
+    nerlstm = LSTM(config.embedding_dim, config.hidden_dim, config.dropout, word2id, tag2id).cuda()
     optimizer = Adam(nerlstm.parameters(), config.learning_rate)
 
     train(config, nerlstm, dataloader, optimizer)
-
+    # a = torch.tensor([[[1,1,1,1],[2,2,2,2],[3,3,3,3]]])
+    # b = torch.tensor([[[3],[3],[3]],[[5],[5],[5]],[[7],[7],[7]]])
+    # print(a.shape)
+    # print(b.shape)
+    # print(a+b)

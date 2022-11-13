@@ -1,7 +1,13 @@
 import os
 import numpy as np
+import torch
 
 # config for training
+
+TAG2ID = {'O': 0, 'B-PER': 1, 'I-PER': 2, 'B-ORG': 3, 'I-ORG': 4, 'B-LOC': 5, 'I-LOC': 6, 'PAD': 7, 'Start': 8,
+          'End': 9,'UNK':10,'pad':7}
+
+
 class Config():
 
     def __init__(self):
@@ -49,13 +55,12 @@ def build_dict(word_dict):
     """
 
     # 7 is the label of pad
-    tag2id = {'O': 0, 'B-PER': 1, 'I-PER': 2, 'B-ORG': 3, 'I-ORG': 4, 'B-LOC': 5, 'I-LOC': 6, 'PAD': 7}
     word2id = {}
     for key in word_dict:
         word2id[key] = len(word2id)
     word2id['unk'] = len(word2id)
     word2id['pad'] = len(word2id)
-    return word2id, tag2id
+    return word2id, TAG2ID
 
 def cal_max_length(data_dir):
 
@@ -67,3 +72,7 @@ def cal_max_length(data_dir):
             max_len = len(line.split())
 
     return max_len
+
+def log_sum_exp(x):
+    max = torch.max(x,-1)[0]
+    return max + torch.log(torch.sum(torch.exp(x - max.unsqueeze(-1)),-1))
