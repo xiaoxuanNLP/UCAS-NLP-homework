@@ -5,8 +5,8 @@
 import torch
 from torch.utils.data import DataLoader, Dataset
 from sklearn.metrics import precision_score, recall_score, f1_score, classification_report
-from .utils import build_vocab, build_dict, cal_max_length, Config
-from .model import LSTM
+from utils import build_vocab, build_dict, cal_max_length, Config
+from model import LSTM,LSTM_CRF
 from torch.optim import Adam, SGD
 import os
 
@@ -51,7 +51,7 @@ class NERdataset(Dataset):
         self.mask = torch.Tensor(self.mask).long()
 
     def __getitem__(self, item):
-        return self.corpus[item], self.label[item], self.length[item], self.mask
+        return self.corpus[item], self.label[item], self.length[item], self.mask[item]
 
     def __len__(self):
         return len(self.label)
@@ -68,9 +68,11 @@ def val(config, model):
         optimizer.zero_grad()
         corpus, label, length,mask = data
         corpus, label, length,mask = corpus.cuda(), label.cuda(), length.cuda(),mask.cuda()
-        output = model(corpus,mask)
-        predict = torch.argmax(output, dim=-1)
-        loss = loss_function(output.view(-1, output.size(-1)), label.view(-1))
+        predict = model.decode(corpus,mask)
+        # print("predict = ",len(predict[0]))
+        # print("label = ",len(label[0]))
+        # predict = torch.argmax(output, dim=-1)
+        # loss = loss_function(output.view(-1, output.size(-1)), label.view(-1))
         leng = []
         for i in label.cpu():
             tmp = []
@@ -79,11 +81,16 @@ def val(config, model):
                     tmp.append(j.item())
             leng.append(tmp)
 
-        for index, i in enumerate(predict.tolist()):
+        for index, i in enumerate(label.tolist()):
+            # print("label = ",label)
+            labels.extend(i[:len(leng[index])])
+            # print("labels = ",labels)
+
+        for index, i in enumerate(predict):
+            # print("predict = ",predict)
             preds.extend(i[:len(leng[index])])
 
-        for index, i in enumerate(label.tolist()):
-            labels.extend(i[:len(leng[index])])
+
 
     precision = precision_score(labels, preds, average='macro')
     recall = recall_score(labels, preds, average='macro')
@@ -101,10 +108,11 @@ def train(config, model, dataloader, optimizer):
     for epoch in range(config.epoch):
         for index, data in enumerate(dataloader):
             optimizer.zero_grad()
-            corpus, label, length = data
-            corpus, label, length = corpus.cuda(), label.cuda(), length.cuda()
-            output = model(corpus)
-            loss = loss_function(output.view(-1, output.size(-1)), label.view(-1))
+            corpus, label, length,mask = data
+            corpus, label, length,mask = corpus.cuda(), label.cuda(), length.cuda(),mask.cuda()
+            output = model(corpus,mask,label)
+            loss = output
+            # loss = loss_function(output.view(-1, output.size(-1)), label.view(-1))
             loss.backward()
             optimizer.step()
             if (index % 200 == 0):
@@ -122,10 +130,10 @@ if __name__ == '__main__':
     max_length = cal_max_length(config.data_dir)
     trainset = NERdataset(config.data_dir, 'train', word2id, tag2id, max_length)
     dataloader = DataLoader(trainset, batch_size=config.batch_size)
-    nerlstm = LSTM(config.embedding_dim, config.hidden_dim, config.dropout, word2id, tag2id).cuda()
-    optimizer = Adam(nerlstm.parameters(), config.learning_rate)
+    lstm_crf = LSTM_CRF(config.embedding_dim, config.hidden_dim, config.dropout, word2id, tag2id).cuda()
+    optimizer = Adam(lstm_crf.parameters(), config.learning_rate)
 
-    train(config, nerlstm, dataloader, optimizer)
+    train(config, lstm_crf, dataloader, optimizer)
     # a = torch.tensor([[[1,1,1,1],[2,2,2,2],[3,3,3,3]]])
     # b = torch.tensor([[[3],[3],[3]],[[5],[5],[5]],[[7],[7],[7]]])
     # print(a.shape)

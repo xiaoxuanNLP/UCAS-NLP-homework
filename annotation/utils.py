@@ -15,7 +15,7 @@ class Config():
         self.learning_rate = 1e-4
         self.dropout = 0.9
         self.epoch = 10
-        self.data_dir = 'sequence_tagging/data/'
+        self.data_dir = './data/'
         self.embedding_dim = 300
         self.hidden_dim = 512
         self.save_model = 'NERmodel.pth'
@@ -29,8 +29,8 @@ def build_vocab(data_dir):
     :return: the word dict for training
     """
 
-    if(os.path.isfile('sequence_tagging/word_dict.npy')):
-        word_dict = np.load('sequence_tagging/word_dict.npy', allow_pickle=True).item()
+    if(os.path.isfile('./data/word_dict.npy')):
+        word_dict = np.load('./data/word_dict.npy', allow_pickle=True).item()
         return word_dict
     else:
         word_dict = {}
@@ -44,8 +44,8 @@ def build_vocab(data_dir):
                 else:
                     word_dict[word] += 1
         word_dict = dict(sorted(word_dict.items(), key=lambda x: x[1], reverse=True))
-        np.save('sequence_tagging/word_dict.npy', word_dict)
-        word_dict = np.load('sequence_tagging/word_dict.npy', allow_pickle=True).item()
+        np.save('./data/word_dict.npy', word_dict)
+        word_dict = np.load('./data/word_dict.npy', allow_pickle=True).item()
         return word_dict
 
 def build_dict(word_dict):
