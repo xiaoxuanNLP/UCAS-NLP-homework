@@ -82,12 +82,13 @@ def val(config, model):
             leng.append(tmp)
 
         for index, i in enumerate(label.tolist()):
-            # print("label = ",label)
+            print("label = ",i[:len(leng[index])])
             labels.extend(i[:len(leng[index])])
             # print("labels = ",labels)
 
         for index, i in enumerate(predict):
-            # print("predict = ",predict)
+            print("predict = ",predict)
+            # print("leng = ",len(leng[index]))
             preds.extend(i[:len(leng[index])])
 
 

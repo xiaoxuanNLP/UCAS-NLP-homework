@@ -5,14 +5,14 @@ import torch
 # config for training
 
 TAG2ID = {'O': 0, 'B-PER': 1, 'I-PER': 2, 'B-ORG': 3, 'I-ORG': 4, 'B-LOC': 5, 'I-LOC': 6, 'PAD': 7, 'Start': 8,
-          'End': 9,'UNK':10,'pad':7}
+          'End': 9}
 
 
 class Config():
 
     def __init__(self):
 
-        self.learning_rate = 1e-4
+        self.learning_rate = 1e-2
         self.dropout = 0.9
         self.epoch = 10
         self.data_dir = './data/'
